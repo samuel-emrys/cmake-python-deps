@@ -1,6 +1,7 @@
 from conan import ConanFile
-from conans import tools
+from conan.errors import ConanException
 from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout
+from conan.tools.files import save
 
 import json
 import sys
@@ -22,7 +23,7 @@ class CMakePythonDepsConan(ConanFile):
     topics = ("Python", "Virtual Environment", "CMake", "venv")
     no_copy_source = True
 
-    python_requires = "pyvenv/0.1.0"
+    python_requires = "pyvenv/0.1.0@mtolympus/stable"
 
     def init(self):
         CMakePythonDeps.venv = self.python_requires["pyvenv"].module.PythonVirtualEnv
@@ -36,7 +37,11 @@ class CMakePythonDeps(object):
 
     @property
     def binpath(self):
-        return "Scripts" if sys.platform == "win32" else "bin"
+        return "Scripts" if self._conanfile.settings.os == "Windows" else "bin"
+
+    @property
+    def ext(self):
+        return ".exe" if self._conanfile.settings.os == "Windows" else ""
 
     @property
     def content(self):
@@ -45,11 +50,14 @@ class CMakePythonDeps(object):
             requirements = {}
             virtualenv = self.venv(self._conanfile)
             package_targets = {}
+            # Add targets for python and pip
+            package_targets["python"] = ["python", "pip"]
+
             if "python_requirements" in user_info.vars:
                 requirements = json.loads(user_info.python_requirements)
 
             if "python_envdir" in user_info.vars:
-                path = Path(user_info.python_envdir, self.binpath, "python")
+                path = Path(user_info.python_envdir, self.binpath, f"python{self.ext}")
                 realname = path.resolve(strict=True).name
                 interpreter = str(path.with_name(realname))
                 virtualenv = self.venv(
@@ -63,28 +71,30 @@ class CMakePythonDeps(object):
                 entry_points = virtualenv.entry_points(package)
                 package_targets[package] = entry_points.get("console_scripts", [])
 
-            extension = ""
-            if self._conanfile.settings.os == "Windows":
-                extension = ".exe"
             for package, targets in package_targets.items():
                 for target in targets:
                     exe_path = None
                     for path_ in [
-                        Path(self.binpath, f"{target}{extension}"),
-                        Path("lib", f"{target}{extension}"),
+                        Path(self.binpath, f"{target}{self.ext}"),
+                        Path("lib", f"{target}{self.ext}"),
                     ]:
                         if Path(user_info.python_envdir, path_).is_file():
                             exe_path = Path(user_info.python_envdir, path_)
                             break
                     if not exe_path:
-                        self.output.warn(f"Could not find path to {target}{extension}")
+                        raise ConanException(f"Could not find path to {target}{self.ext}")
                     else:
+                        exe_path_str = (
+                            str(exe_path)
+                            if sys.platform != "win32"
+                            else str(exe_path).replace("\\", r"\\")
+                        )
                         filename = f"{package}-config.cmake"
                         config[filename] = config.get(filename, "") + textwrap.dedent(
                             f"""\
                             if(NOT TARGET {package}::{target})
                                 add_executable({package}::{target} IMPORTED)
-                                set_target_properties({package}::{target} PROPERTIES IMPORTED_LOCATION {exe_path})
+                                set_target_properties({package}::{target} PROPERTIES IMPORTED_LOCATION {exe_path_str})
                             endif()
                             """
                         )
@@ -93,6 +103,6 @@ class CMakePythonDeps(object):
 
     def generate(self):
         for filename, content in self.content.items():
-            tools.save(
-                os.path.join(self._conanfile.generators_folder, filename), content
+            save(
+                self, os.path.join(self._conanfile.generators_folder, filename), content
             )
