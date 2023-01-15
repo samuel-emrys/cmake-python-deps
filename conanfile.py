@@ -13,7 +13,7 @@ from pathlib import Path
 
 class CMakePythonDepsConan(ConanFile):
     name = "CMakePythonDeps"
-    version = "0.2.0"
+    version = "0.2.1"
 
     # Optional metadata
     url = "https://github.com/samuel-emrys/cmake-python-deps.git"
@@ -55,7 +55,7 @@ class CMakePythonDeps(object):
             python_envdir = dependency.conf_info.get("user.env.pythonenv:dir")
             requirements_conf = dependency.conf_info.get('user.env.pythonenv:requirements')
             if requirements_conf:
-                requirements = json.loads(requirements_str)
+                requirements = json.loads(requirements_conf)
 
             # If the generator has been provided with a virtual environment to scan
             if python_envdir:
