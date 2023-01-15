@@ -13,7 +13,7 @@ from pathlib import Path
 
 class CMakePythonDepsConan(ConanFile):
     name = "CMakePythonDeps"
-    version = "0.1.0"
+    version = "0.2.0"
 
     # Optional metadata
     url = "https://github.com/samuel-emrys/cmake-python-deps.git"
@@ -46,58 +46,60 @@ class CMakePythonDeps(object):
     @property
     def content(self):
         config = {}
-        for dep_name, user_info in self._conanfile.deps_user_info.items():
-            requirements = {}
-            virtualenv = self.venv(self._conanfile)
+        for dep_name, dependency in self._conanfile.dependencies.items():
             package_targets = {}
             # Add targets for python and pip
             package_targets["python"] = ["python", "pip"]
 
-            if "python_requirements" in user_info.vars:
-                requirements = json.loads(user_info.python_requirements)
+            requirements = {}
+            python_envdir = dependency.conf_info.get("user.env.pythonenv:dir")
+            requirements_conf = dependency.conf_info.get('user.env.pythonenv:requirements')
+            if requirements_conf:
+                requirements = json.loads(requirements_str)
 
-            if "python_envdir" in user_info.vars:
-                path = Path(user_info.python_envdir, self.binpath, f"python{self.ext}")
+            # If the generator has been provided with a virtual environment to scan
+            if python_envdir:
+                path = Path(python_envdir, self.binpath, f"python{self.ext}")
                 realname = path.resolve(strict=True).name
                 interpreter = str(path.with_name(realname))
                 virtualenv = self.venv(
                     self._conanfile,
                     python=interpreter,
-                    env_folder=user_info.python_envdir,
+                    env_folder=python_envdir,
                 )
 
-            for requirement in requirements:
-                package = requirement.split("==")[0]
-                entry_points = virtualenv.entry_points(package)
-                package_targets[package] = entry_points.get("console_scripts", [])
+                for requirement in requirements:
+                    package = requirement.split("==")[0]
+                    entry_points = virtualenv.entry_points(package)
+                    package_targets[package] = entry_points.get("console_scripts", [])
 
-            for package, targets in package_targets.items():
-                for target in targets:
-                    exe_path = None
-                    for path_ in [
-                        Path(self.binpath, f"{target}{self.ext}"),
-                        Path("lib", f"{target}{self.ext}"),
-                    ]:
-                        if Path(user_info.python_envdir, path_).is_file():
-                            exe_path = Path(user_info.python_envdir, path_)
-                            break
-                    if not exe_path:
-                        raise ConanException(f"Could not find path to {target}{self.ext}")
-                    else:
-                        exe_path_str = (
-                            str(exe_path)
-                            if sys.platform != "win32"
-                            else str(exe_path).replace("\\", r"\\")
-                        )
-                        filename = f"{package}-config.cmake"
-                        config[filename] = config.get(filename, "") + textwrap.dedent(
-                            f"""\
-                            if(NOT TARGET {package}::{target})
-                                add_executable({package}::{target} IMPORTED)
-                                set_target_properties({package}::{target} PROPERTIES IMPORTED_LOCATION {exe_path_str})
-                            endif()
-                            """
-                        )
+                for package, targets in package_targets.items():
+                    for target in targets:
+                        exe_path = None
+                        for path_ in [
+                            Path(self.binpath, f"{target}{self.ext}"),
+                            Path("lib", f"{target}{self.ext}"),
+                        ]:
+                            if Path(python_envdir, path_).is_file():
+                                exe_path = Path(python_envdir, path_)
+                                break
+                        if not exe_path:
+                            raise ConanException(f"Could not find path to {target}{self.ext}")
+                        else:
+                            exe_path_str = (
+                                str(exe_path)
+                                if sys.platform != "win32"
+                                else str(exe_path).replace("\\", r"\\")
+                            )
+                            filename = f"{package}-config.cmake"
+                            config[filename] = config.get(filename, "") + textwrap.dedent(
+                                f"""\
+                                if(NOT TARGET {package}::{target})
+                                    add_executable({package}::{target} IMPORTED)
+                                    set_target_properties({package}::{target} PROPERTIES IMPORTED_LOCATION {exe_path_str})
+                                endif()
+                                """
+                            )
 
         return config
 

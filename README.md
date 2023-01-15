@@ -2,7 +2,13 @@
 
 This is a conan `python_requires` package, exposing functionality to generate CMake targets for executables in a python virtual environment.
 
-For a recipe to be consumed using the `CMakePythonDeps` generator, populate the `self.user_info.python_requirements` and `self.user_info.python_env` `package_info()` variables as below:
+First, add the `mtolympus` remote to your conan configuration
+
+```
+$ conan remote add mtolympus-conan https://mtolympus.jfrog.io/artifactory/api/conan/mtolympus-conan
+```
+
+For a recipe to be consumed using the `CMakePythonDeps` generator, populate the `user.env.pythonenv:requirements` and `user.env.pythonenv:dir` configuration variables. This can be performed using the `package_info()` method as below:
 
 ```python
 class PythonVirtualEnvironment(ConanFile):
@@ -14,12 +20,13 @@ class PythonVirtualEnvironment(ConanFile):
             "sphinx_book_theme==0.3.2",
             "pygments",
         ]
-        self.user_info.python_requirements = json.dumps(requirements)
-        self.user_info.python_envdir = self.package_folder
+        self.conf_info.define("user.env.pythonenv:requirements", json.dumps(requirements))
+        self.conf_info.define("user.env.pythonenv:dir", self.package_folder)
+
 ```
 
-* `user_info.python_requirements`: This is expected to be a JSON string containing a list of the packages and their versions to be installed into the virtual environment.
-* `user_info.python_envdir`: A string representing the path to the python virtual environment.
+* `user.env.pythonenv:requirements`: This is expected to be a JSON string containing a list of the packages and their versions to be installed into the virtual environment.
+* `user.env.pythonenv:dir`: A string representing the path to the python virtual environment.
 
 An example of a package that uses this is the [`python-virtualenv/system`](https://github.com/samuel-emrys/python-virtualenv) package.
 
@@ -28,7 +35,7 @@ To consume a recipe that has populated the above variables, simply specify `CMak
 ```python
 class ExamplePythonConan(ConanFile):
     # ...
-    python_requires = "CMakePythonDeps/0.1.0"
+    python_requires = "CMakePythonDeps/0.2.0"
 
     def generate(self):
         py = python_requires["CMakePythonDeps"].modules.CMakePythonDeps(self)
