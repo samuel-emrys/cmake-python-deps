@@ -35,7 +35,7 @@ To consume a recipe that has populated the above variables, simply specify `CMak
 ```python
 class ExamplePythonConan(ConanFile):
     # ...
-    python_requires = "CMakePythonDeps/0.2.0"
+    python_requires = "CMakePythonDeps/0.2.2"
 
     def generate(self):
         py = python_requires["CMakePythonDeps"].modules.CMakePythonDeps(self)
@@ -61,10 +61,8 @@ set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
 set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
 
-# Only regenerate Sphinx when:
-# - Doxygen has rerun
-# - Our doc files have been updated
-# - The Sphinx config has been updated
+# CMakePythonDeps generates a component for each binary exported by the python package
+# In this case, it will invoke sphinx-build
 add_custom_command(
   OUTPUT ${SPHINX_INDEX_FILE}
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/index.rst
@@ -80,5 +78,5 @@ install(DIRECTORY ${SPHINX_BUILD}/ DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 ```
 
-An example of this being used in conjunction with `python-virtualenv` is [`sphinx-consumer`](https://github.com/samuel-emrys/sphinx-consumer).
+An example of this being used in conjunction with `python-virtualenv` can be found in the [test_package](test_package).
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 class CMakePythonDepsConan(ConanFile):
     name = "CMakePythonDeps"
-    version = "0.2.1"
+    version = "0.2.2"
 
     # Optional metadata
     url = "https://github.com/samuel-emrys/cmake-python-deps.git"
@@ -23,7 +23,7 @@ class CMakePythonDepsConan(ConanFile):
     topics = ("Python", "Virtual Environment", "CMake", "venv")
     no_copy_source = True
 
-    python_requires = "pyvenv/0.1.0@mtolympus/stable"
+    python_requires = "pyvenv/[>=0.1.1]@mtolympus/stable"
 
     def init(self):
         CMakePythonDeps.venv = self.python_requires["pyvenv"].module.PythonVirtualEnv
