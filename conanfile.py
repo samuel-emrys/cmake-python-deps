@@ -12,8 +12,8 @@ from pathlib import Path
 
 
 class CMakePythonDepsConan(ConanFile):
-    name = "CMakePythonDeps"
-    version = "0.2.2"
+    name = "cmake-python-deps"
+    version = "0.3.0"
 
     # Optional metadata
     url = "https://github.com/samuel-emrys/cmake-python-deps.git"
@@ -22,8 +22,9 @@ class CMakePythonDepsConan(ConanFile):
     description = "A python_requires library providing a CMake generator to expose executables in python virtual environments as CMake targets"
     topics = ("Python", "Virtual Environment", "CMake", "venv")
     no_copy_source = True
+    package_type = "python-require"
 
-    python_requires = "pyvenv/[>=0.1.1]@mtolympus/stable"
+    python_requires = "pyvenv/[>=0.2.2]@mtolympus/stable"
 
     def init(self):
         CMakePythonDeps.venv = self.python_requires["pyvenv"].module.PythonVirtualEnv
@@ -56,6 +57,7 @@ class CMakePythonDeps(object):
             requirements_conf = dependency.conf_info.get('user.env.pythonenv:requirements')
             if requirements_conf:
                 requirements = json.loads(requirements_conf)
+                self._conanfile.output.warning(f"Parsed {requirements}")
 
             # If the generator has been provided with a virtual environment to scan
             if python_envdir:
@@ -64,7 +66,7 @@ class CMakePythonDeps(object):
                 interpreter = str(path.with_name(realname))
                 virtualenv = self.venv(
                     self._conanfile,
-                    python=interpreter,
+                    interpreter=interpreter,
                     env_folder=python_envdir,
                 )
 
