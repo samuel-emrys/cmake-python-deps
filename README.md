@@ -35,10 +35,10 @@ To consume a recipe that has populated the above variables, simply specify `CMak
 ```python
 class ExamplePythonConan(ConanFile):
     # ...
-    python_requires = "CMakePythonDeps/0.2.2"
+    python_requires = "cmake-python-deps/0.3.0"
 
     def generate(self):
-        py = python_requires["CMakePythonDeps"].modules.CMakePythonDeps(self)
+        py = python_requires["cmake-python-deps"].modules.CMakePythonDeps(self)
         py.generate()
 ```
 
